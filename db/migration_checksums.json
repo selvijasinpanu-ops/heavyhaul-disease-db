@@ -1,0 +1,8 @@
+{
+  "001_baseline_schema.sql": "a3f16e756ede45c87b0e2704c20011a8ad1445756bad60e0831c150e236dc206",
+  "002_dictionary_seed.sql": "9d63cb94aff0ddac577cdaf6c0dd020f7148e91eae19ecaa2848b1e2a07a197d",
+  "003_analysis_views.sql": "2ae603741877cc9ba5fcb2a0c5c18e87383358725e5416e728c3a7b875cda395",
+  "004_case_import_and_evaluation_framework.sql": "a1a164151200921e41839d31efc0283e568d90e6b3b60dafdb66900a45e99990",
+  "005_migration_registry.sql": "e7ae49a7467a39c71ac07a5a40271cacc11f0d7a574123392a754af48994e3aa",
+  "006_b13_staging_quality_corrections.sql": "052ab98075e2f1b194b230ea9958049def256b4c97efa32e8d0b7c62c8e5f6e6"
+}

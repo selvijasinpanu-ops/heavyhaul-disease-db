@@ -1,0 +1,18 @@
+type_code,parent_type_code,standard_name,disease_domain,description,mandatory_flag,active_flag,sort_order
+T01,,钢轨侧磨与异常磨耗,track,"Includes rail side wear, vertical wear, abnormal wear and eccentric wear.",t,t,101
+T02,,波磨与周期性不平顺,track,"Includes short-pitch corrugation, wave wear, crushing, wavelength and wave depth development.",t,t,102
+T03,,钢轨顶面磨耗,track,Includes top surface wear and local top wear development.,t,t,103
+T04,,滚动接触疲劳,track,"Includes head checks, cracks, peeling, spalling and crushing.",t,t,104
+T05,,轨道几何不平顺,track,"Includes gauge, alignment, profile, level and twist irregularity.",t,t,105
+T06,,曲线超高异常,track,Includes insufficient and excessive superelevation on small-radius curves.,t,t,106
+T07,,扣件病害,track,"Includes fastener looseness, bolt issues, pad disease and failure.",t,t,107
+T08,,轨枕病害,track,"Includes sleeper crack, damage and voiding.",t,t,108
+T09,,道床与路基病害,track,"Includes mud pumping, settlement, fouling, shoulder issues and drainage problems.",t,t,109
+B01,,梁体裂缝,bridge,"Includes longitudinal, transverse, oblique and web cracks.",t,t,201
+B02,,混凝土劣化,bridge,"Includes carbonation, alkali-aggregate reaction, exposed reinforcement and corrosion.",t,t,202
+B03,,梁体变形,bridge,"Includes deflection, cracking, torsion and lateral displacement.",t,t,203
+B04,,支座病害,bridge,"Includes aging, cracking, offset, disengagement and abnormal deformation.",t,t,204
+B05,,墩台病害,bridge,"Includes cracks, inclination, settlement and scour.",t,t,205
+B06,,桥梁附属结构病害,bridge,"Includes expansion joints, drainage, inspection facilities, coating and corrosion.",t,t,206
+C01,,线桥空间协同病害,interface,Includes track eccentricity and beam-track relative displacement.,t,t,301
+C02,,桥端过渡病害,interface,"Includes bridge-end step, stiffness transition and subgrade-abutment transition protrusion.",t,t,302

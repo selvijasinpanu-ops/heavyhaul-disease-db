@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>重载铁路病害数据库</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">HR</div>
+        <div>
+          <h1>重载铁路病害数据库</h1>
+          <p>PostgreSQL / PostGIS</p>
+        </div>
+      </div>
+      <nav class="nav" aria-label="主导航">
+        <button class="nav-item active" data-view="dashboard"><i data-lucide="layout-dashboard"></i><span>总览</span></button>
+        <button class="nav-item" data-view="entry"><i data-lucide="square-pen"></i><span>录入</span></button>
+        <button class="nav-item" data-view="gis"><i data-lucide="map"></i><span>GIS</span></button>
+        <button class="nav-item" data-view="cases"><i data-lucide="list-tree"></i><span>病害台账</span></button>
+        <button class="nav-item" data-view="dictionary"><i data-lucide="book-open"></i><span>字典</span></button>
+      </nav>
+      <div class="connection">
+        <span id="dbDot" class="dot"></span>
+        <span id="dbStatus">连接中</span>
+      </div>
+    </aside>
+
+    <main class="main">
+      <section id="dashboard" class="view active">
+        <header class="topbar">
+          <div>
+            <h2>数据库总览</h2>
+            <p id="dbLine">读取 PostgreSQL 状态中</p>
+          </div>
+          <button class="icon-button" id="refreshBtn" title="刷新数据"><i data-lucide="refresh-cw"></i></button>
+        </header>
+
+        <div class="metric-grid">
+          <article class="metric"><span>线路</span><strong id="metricLines">0</strong></article>
+          <article class="metric"><span>区段</span><strong id="metricSegments">0</strong></article>
+          <article class="metric"><span>检测</span><strong id="metricEvents">0</strong></article>
+          <article class="metric"><span>病害</span><strong id="metricCases">0</strong></article>
+          <article class="metric"><span>观测</span><strong id="metricObservations">0</strong></article>
+        </div>
+
+        <section class="workspace-band">
+          <div class="panel wide">
+            <div class="panel-head">
+              <h3>病害域分布</h3>
+              <span>轨道 / 桥梁 / 接口</span>
+            </div>
+            <div id="domainBars" class="bars"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head">
+              <h3>验收状态</h3>
+              <span>字典完整性</span>
+            </div>
+            <div class="acceptance">
+              <strong id="mandatoryCount">17</strong>
+              <span id="acceptanceText">等待验收</span>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <section id="entry" class="view">
+        <header class="topbar">
+          <div>
+            <h2>数据录入</h2>
+            <p>先建线路和区段，再录检测、病害实例和观测值。空间对象可同步写入 PostGIS。</p>
+          </div>
+          <div class="segmented">
+            <button class="segment-tab active" data-form="lineForm">线路</button>
+            <button class="segment-tab" data-form="segmentForm">区段</button>
+            <button class="segment-tab" data-form="curveForm">曲线</button>
+            <button class="segment-tab" data-form="bridgeForm">桥梁</button>
+            <button class="segment-tab" data-form="eventForm">检测</button>
+            <button class="segment-tab" data-form="caseForm">病害</button>
+            <button class="segment-tab" data-form="indicatorForm">指标</button>
+            <button class="segment-tab" data-form="observationForm">观测</button>
+          </div>
+        </header>
+
+        <div class="form-shell">
+          <form id="lineForm" class="data-form active" data-endpoint="/api/railway-lines">
+            <label>线路编码<input name="line_code" required placeholder="HH-L01" /></label>
+            <label>线路名称<input name="line_name" required placeholder="示例重载线路" /></label>
+            <label>运营单位<input name="operator_name" /></label>
+            <label>设计速度 km/h<input name="design_speed_kmh" type="number" step="0.01" /></label>
+            <label>轨距 mm<input name="gauge_mm" type="number" step="0.01" value="1435" /></label>
+            <label>数据来源<input name="source_name" /></label>
+            <label>几何格式<select name="geom_format"><option value="geojson">GeoJSON</option><option value="wkt">WKT</option><option value="ewkt">EWKT</option></select></label>
+            <label>SRID<input name="geom_srid" type="number" placeholder="未确认可留空" /></label>
+            <label class="span-2">线路几何<textarea name="geom_text" placeholder='{"type":"MultiLineString","coordinates":[[[116.1,39.1],[116.2,39.2]]]}'></textarea></label>
+            <button class="primary" type="submit"><i data-lucide="save"></i><span>保存线路</span></button>
+          </form>
+
+          <form id="segmentForm" class="data-form" data-endpoint="/api/route-segments">
+            <label>所属线路<select name="line_id" data-options="lines" data-value="line_id" data-label="line_name"></select></label>
+            <label>区段编码<input name="segment_code" required placeholder="SEG-K123-K124" /></label>
+            <label>区段名称<input name="segment_name" /></label>
+            <label>起点里程 m<input name="start_chainage_m" required type="number" step="0.001" /></label>
+            <label>终点里程 m<input name="end_chainage_m" required type="number" step="0.001" /></label>
+            <label>起点文本<input name="start_chainage_text" placeholder="K123+000" /></label>
+            <label>终点文本<input name="end_chainage_text" placeholder="K124+000" /></label>
+            <label>行别<input name="direction" placeholder="上行 / 下行" /></label>
+            <label>几何格式<select name="geom_format"><option value="geojson">GeoJSON</option><option value="wkt">WKT</option><option value="ewkt">EWKT</option></select></label>
+            <label>SRID<input name="geom_srid" type="number" placeholder="未确认可留空" /></label>
+            <label class="span-2">区段几何<textarea name="geom_text" placeholder='{"type":"LineString","coordinates":[[116.1,39.1],[116.2,39.2]]}'></textarea></label>
+            <button class="primary" type="submit"><i data-lucide="save"></i><span>保存区段</span></button>
+          </form>
+
+          <form id="curveForm" class="data-form" data-endpoint="/api/curve-sections">
+            <label>所属区段<select name="segment_id" data-options="segments" data-value="segment_id" data-label="segment_code"></select></label>
+            <label>曲线编码<input name="curve_code" required placeholder="CUR-K123-01" /></label>
+            <label>曲线名称<input name="curve_name" /></label>
+            <label>半径 m<input name="radius_m" type="number" step="0.001" /></label>
+            <label>超高 mm<input name="superelevation_mm" type="number" step="0.001" /></label>
+            <label>缓和曲线长 m<input name="transition_curve_length_m" type="number" step="0.001" /></label>
+            <label>起点里程 m<input name="start_chainage_m" required type="number" step="0.001" /></label>
+            <label>终点里程 m<input name="end_chainage_m" required type="number" step="0.001" /></label>
+            <label>几何格式<select name="geom_format"><option value="geojson">GeoJSON</option><option value="wkt">WKT</option><option value="ewkt">EWKT</option></select></label>
+            <label>SRID<input name="geom_srid" type="number" placeholder="未确认可留空" /></label>
+            <label class="span-2">曲线几何<textarea name="geom_text" placeholder="LINESTRING(116.1 39.1,116.2 39.2)"></textarea></label>
+            <button class="primary" type="submit"><i data-lucide="save"></i><span>保存曲线</span></button>
+          </form>
+
+          <form id="bridgeForm" class="data-form" data-endpoint="/api/bridges">
+            <label>所属区段<select name="segment_id" data-options="segments" data-value="segment_id" data-label="segment_code"></select></label>
+            <label>桥梁编码<input name="bridge_code" required placeholder="BR-K123" /></label>
+            <label>桥梁名称<input name="bridge_name" /></label>
+            <label>桥梁类型<input name="bridge_type" /></label>
+            <label>起点里程 m<input name="start_chainage_m" type="number" step="0.001" /></label>
+            <label>终点里程 m<input name="end_chainage_m" type="number" step="0.001" /></label>
+            <label>几何格式<select name="geom_format"><option value="geojson">GeoJSON</option><option value="wkt">WKT</option><option value="ewkt">EWKT</option></select></label>
+            <label>SRID<input name="geom_srid" type="number" placeholder="未确认可留空" /></label>
+            <label class="span-2">桥梁几何<textarea name="geom_text" placeholder="LINESTRING(116.1 39.1,116.2 39.2)"></textarea></label>
+            <button class="primary" type="submit"><i data-lucide="save"></i><span>保存桥梁</span></button>
+          </form>
+
+          <form id="eventForm" class="data-form" data-endpoint="/api/inspection-events">
+            <label>检测编号<input name="event_code" required placeholder="INS-2026-08-001" /></label>
+            <label>所属区段<select name="segment_id" data-options="segments" data-value="segment_id" data-label="segment_code"></select></label>
+            <label>检测日期<input name="event_date" required type="date" /></label>
+            <label>检测方法<input name="inspection_method" placeholder="人工巡检 / 动检车 / 传感器" /></label>
+            <label>单位<input name="organization" /></label>
+            <label>天气<input name="weather" /></label>
+            <label>源文件 URI<input name="source_file_uri" /></label>
+            <label>SHA-256<input name="source_checksum_sha256" /></label>
+            <label class="span-2">备注<textarea name="note"></textarea></label>
+            <button class="primary" type="submit"><i data-lucide="save"></i><span>保存检测</span></button>
+          </form>
+
+          <form id="caseForm" class="data-form" data-endpoint="/api/disease-cases">
+            <label>病害编号<input name="case_code" required placeholder="CASE-K123-450-T01" /></label>
+            <label>病害类型<select name="disease_type_code" required data-options="diseaseTypes" data-value="type_code" data-label="standard_name"></select></label>
+            <label>所属区段<select name="segment_id" data-options="segments" data-value="segment_id" data-label="segment_code"></select></label>
+            <label>关联曲线<select name="curve_id" data-options="curves" data-value="curve_id" data-label="curve_code"></select></label>
+            <label>关联桥梁<select name="bridge_id" data-options="bridges" data-value="bridge_id" data-label="bridge_code"></select></label>
+            <label>起点里程 m<input name="start_chainage_m" type="number" step="0.001" /></label>
+            <label>终点里程 m<input name="end_chainage_m" type="number" step="0.001" /></label>
+            <label>里程文本<input name="chainage_text" placeholder="K123+450-K123+465" /></label>
+            <label>状态<select name="status"><option value="open">open</option><option value="monitored">monitored</option><option value="treated">treated</option><option value="closed">closed</option></select></label>
+            <label>等级<select name="severity_level"><option value="">未定</option><option>I</option><option>II</option><option>III</option><option>IV</option><option>V</option></select></label>
+            <label>几何格式<select name="geom_format"><option value="geojson">GeoJSON</option><option value="wkt">WKT</option><option value="ewkt">EWKT</option></select></label>
+            <label>SRID<input name="geom_srid" type="number" placeholder="未确认可留空" /></label>
+            <label class="span-2">病害几何<textarea name="geom_text" placeholder='{"type":"Point","coordinates":[116.1,39.1]}'></textarea></label>
+            <label class="span-2">备注<textarea name="note"></textarea></label>
+            <button class="primary" type="submit"><i data-lucide="save"></i><span>保存病害</span></button>
+          </form>
+
+          <form id="indicatorForm" class="data-form" data-endpoint="/api/indicators">
+            <label>指标编码<input name="indicator_code" required placeholder="T01-WEAR-SIDE-MM" /></label>
+            <label>关联病害<select name="disease_type_code" data-options="diseaseTypes" data-value="type_code" data-label="standard_name"></select></label>
+            <label>标准名称<input name="standard_name" required placeholder="钢轨侧磨量" /></label>
+            <label>源名称<input name="source_name" /></label>
+            <label>单位<input name="unit" placeholder="mm" /></label>
+            <label>小数位<input name="decimal_scale" type="number" min="0" max="8" value="3" /></label>
+            <label>值类型<select name="value_kind"><option>raw</option><option>derived</option><option>evaluation</option></select></label>
+            <label>必填级别<select name="required_level"><option>required</option><option>conditional</option><option>optional</option></select></label>
+            <label>趋势方向<select name="trend_direction"><option value="">未定</option><option>higher</option><option>lower</option><option>bidirectional</option><option>categorical</option></select></label>
+            <label class="span-2">定义<textarea name="definition"></textarea></label>
+            <button class="primary" type="submit"><i data-lucide="save"></i><span>保存指标</span></button>
+          </form>
+
+          <form id="observationForm" class="data-form" data-endpoint="/api/observation-values">
+            <label>检测记录<select name="event_id" required data-options="events" data-value="event_id" data-label="event_code"></select></label>
+            <label>病害实例<select name="case_id" required data-options="cases" data-value="case_id" data-label="case_code"></select></label>
+            <label>指标编码<select name="indicator_code" required data-options="indicators" data-value="indicator_code" data-label="standard_name"></select></label>
+            <label>观测时间<input name="observed_at" type="datetime-local" /></label>
+            <label>数值<input name="raw_value" type="number" step="0.001" /></label>
+            <label>文本值<input name="text_value" /></label>
+            <label>单位<input name="unit" /></label>
+            <label>原规范等级<input name="native_grade" /></label>
+            <label>统一等级<select name="unified_level"><option value="">未定</option><option>I</option><option>II</option><option>III</option><option>IV</option><option>V</option></select></label>
+            <label>质量标记<select name="source_quality_flag"><option>A</option><option>B</option><option>C</option><option>R</option></select></label>
+            <label class="check-row"><input name="applicable_flag" type="checkbox" checked />适用</label>
+            <label>缺失原因<input name="missing_reason" /></label>
+            <label class="span-2">备注<textarea name="note"></textarea></label>
+            <button class="primary" type="submit"><i data-lucide="save"></i><span>保存观测</span></button>
+          </form>
+        </div>
+        <p id="formMessage" class="message" role="status"></p>
+      </section>
+
+      <section id="gis" class="view">
+        <header class="topbar">
+          <div>
+            <h2>GIS 空间数据</h2>
+            <p>写入和查看 PostGIS 的 geom 字段，二维坐标会自动补齐 Z/M。</p>
+          </div>
+          <button class="icon-button" id="refreshGisBtn" title="刷新 GIS"><i data-lucide="refresh-cw"></i></button>
+        </header>
+
+        <div class="gis-layout">
+          <section class="map-panel">
+            <div class="map-head">
+              <strong>空间图层</strong>
+              <span id="mapExtentText">暂无几何</span>
+            </div>
+            <div id="gisMap" class="gis-map"></div>
+            <div id="layerToggles" class="layer-toggles"></div>
+          </section>
+
+          <aside class="gis-tools">
+            <form id="gisConfigForm" class="stack-form">
+              <h3>坐标系配置</h3>
+              <label>项目 SRID<input name="projected_srid" type="number" placeholder="如 CGCS2000 投影 SRID" /></label>
+              <label>坐标系说明<textarea name="railway_crs_note"></textarea></label>
+              <label>文件存储根目录<input name="file_storage_root" placeholder="本机调查资料目录" /></label>
+              <button class="primary" type="submit"><i data-lucide="save"></i><span>保存配置</span></button>
+            </form>
+
+            <form id="geometryAttachForm" class="stack-form">
+              <h3>写入已有记录几何</h3>
+              <label>空间图层<select name="layer" id="geometryLayerSelect"></select></label>
+              <label>记录 ID<input name="record_id" type="number" required placeholder="对应表主键 ID" /></label>
+              <label>几何格式<select name="geom_format"><option value="geojson">GeoJSON</option><option value="wkt">WKT</option><option value="ewkt">EWKT</option></select></label>
+              <label>SRID<input name="geom_srid" type="number" placeholder="未确认可留空" /></label>
+              <label>Z 默认值<input name="geom_z_default" type="number" step="0.001" value="0" /></label>
+              <label>M 默认值<input name="geom_m_default" type="number" step="0.001" placeholder="可填里程 m" /></label>
+              <label>几何文本<textarea name="geom_text" required placeholder='{"type":"LineString","coordinates":[[116.1,39.1],[116.2,39.2]]}'></textarea></label>
+              <button class="primary" type="submit"><i data-lucide="map-pin-plus"></i><span>写入几何</span></button>
+            </form>
+            <p id="gisMessage" class="message" role="status"></p>
+          </aside>
+        </div>
+      </section>
+
+      <section id="cases" class="view">
+        <header class="topbar">
+          <div>
+            <h2>病害台账</h2>
+            <p>按最新检测日期排序。</p>
+          </div>
+        </header>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>编号</th>
+                <th>类型</th>
+                <th>状态</th>
+                <th>等级</th>
+                <th>里程</th>
+                <th>最近检测</th>
+                <th>观测数</th>
+              </tr>
+            </thead>
+            <tbody id="caseRows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="dictionary" class="view">
+        <header class="topbar">
+          <div>
+            <h2>病害字典</h2>
+            <p>17 类强制病害类型。</p>
+          </div>
+        </header>
+        <div id="dictionaryGrid" class="dictionary-grid"></div>
+      </section>
+    </main>
+
+    <script src="/vendor/lucide/lucide.js"></script>
+    <script src="/app.js"></script>
+  </body>
+</html>

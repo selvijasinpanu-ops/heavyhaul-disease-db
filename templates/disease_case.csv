@@ -1,0 +1,1 @@
+case_code,disease_type_code,segment_code,curve_code,bridge_code,span_code,component_code,start_chainage_m,end_chainage_m,chainage_text,status,severity_level,geom_format,geom_srid,geom_text,note
